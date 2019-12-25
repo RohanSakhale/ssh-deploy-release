@@ -20,7 +20,10 @@ module.exports = class {
         this.options = options;
         this.logger  = logger;
         this.onError = onError;
-
+        this.mkdir = 'mkdir -p ';
+        if(this.options.windows) {
+            this.mkdir = 'mkdir ';
+        }
         if (options.privateKeyFile) {
             options.privateKey = fs.readFileSync(options.privateKeyFile);
         }
@@ -158,7 +161,7 @@ module.exports = class {
      * @param done
      */
     synchronize(src, target, synchronizedFolder, done) {
-        const source     = src + '/';
+        const source     = src + this.options.separator;
         const fullTarget = this.options.username + '@' + this.options.host + ':' + synchronizedFolder;
         const escapedUsername = shellEscape(this.options.username);
 
@@ -225,7 +228,7 @@ module.exports = class {
             }
 
             this.synchronizeRemote(
-                this.options.deployPath + '/' + this.options.synchronizedFolder,
+                this.options.deployPath + this.options.separator + this.options.synchronizedFolder,
                 target,
                 done
             );
@@ -240,7 +243,7 @@ module.exports = class {
      * @param done
      */
     synchronizeRemote(src, target, done) {
-        const copy = 'rsync -a ' + src + '/ ' + target;
+        const copy = 'rsync -a ' + src + this.options.separator  + ' ' + target;
 
         this.exec(copy, () => {
             done();
@@ -255,14 +258,24 @@ module.exports = class {
      * @param done
      */
     createSymboliclink(target, link, done) {
-        link                = utils.realpath(link);
-        const symlinkTarget = utils.realpath(link + '/../' + target);
-
-        const commands = [
-            `mkdir -p \`dirname ${link}\``, // Create the parent of the symlink
-            `if test ! -e ${symlinkTarget}; then mkdir -p ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
+        link                = utils.realpath(link, this.options.separator);
+        const symlinkTarget = utils.realpath(link + this.options.separator +  '..' + this.options.separator + target, this.options.separator);
+        var mkdir = 'mkdir -p';
+        if(this.options.windows) {
+            mkdir = 'mkdir';
+        }
+        var commands = [
+            `${mkdir} \`dirname ${link}\``, // Create the parent of the symlink
+            `if test ! -e ${symlinkTarget}; then ${mkdir} ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
             `ln -nfs ${target} ${link}`
         ];
+
+        // if(this.options.windows) {
+        //     commands = [
+        //         `ln -nfs ${target} ${link}`
+        //     ];
+        //     this.logger.log('Running: ' + `ln -nfs ${target} ${link}`);
+        // }
 
         this.execMultiple(commands, done);
     }
@@ -287,8 +300,9 @@ module.exports = class {
      * @param done
      */
     createFolder(path, done) {
+        
         const commands = [
-            'mkdir -p ' + path,
+            this.mkdir + path,
             'chmod ugo+w ' + path
         ];
         this.execMultiple(commands, done);
@@ -306,7 +320,7 @@ module.exports = class {
             "cd " + folder + " && rm -rf `ls -r " + folder + " | awk 'NR>" + numberToKeep + "'`"
         ];
 
-
+        this.logger.log('Running: ' + "cd " + folder + " && rm -rf `ls -r " + folder + " | awk 'NR>" + numberToKeep + "'`");
         this.execMultiple(commands, () => {
             done();
         });

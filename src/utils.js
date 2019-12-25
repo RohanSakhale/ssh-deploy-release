@@ -21,9 +21,12 @@ module.exports = {
      * @param path
      * @returns {string}
      */
-    realpath(path) {
+    realpath(path, separator) {
+        if(separator === undefined) {
+            separator = '/';
+        }
         // Explode the given path into it's parts
-        var arr = path.split('/'); // The path is an array now
+        var arr = path.split(separator); // The path is an array now
 
         path = []; // Foreach part make a check
         for (var k in arr) {
@@ -46,6 +49,6 @@ module.exports = {
         }
 
         // Returns the absloute path as a string
-        return path.join('/');
+        return path.join(separator);
     }
 };

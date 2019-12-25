@@ -44,6 +44,8 @@ module.exports = class Options{
             synchronizedFolder: 'synchronized',
             rsyncOptions: '',
             compression: true,
+            separator: '/',
+            windows: false,
 
             // Release
             releasesToKeep: '3',

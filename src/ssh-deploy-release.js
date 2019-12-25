@@ -3,6 +3,7 @@ const path  = require('path');
 const fs    = require('fs');
 const _     = require('lodash');
 
+
 const Options  = require('./Options');
 const Release  = require('./Release');
 const Remote   = require('./Remote');
@@ -15,15 +16,19 @@ const utils  = require('./utils');
 module.exports = class {
     constructor(options) {
         this.options = new Options(options).get();
+        this.logger = logger;
 
         this.release = new Release(
             this.options,
             Options.defaultOptions()
         );
-
+        if(this.options.windows) {
+            this.options.separator = '\\';
+            this.release.path = this.release.path.split('/').join(this.options.separator);
+        }
         this.remote = new Remote(this.options);
 
-        this.logger = logger;
+        
         this.logger.setDebug(this.options.debug);
 
         this.context = {
@@ -296,7 +301,7 @@ module.exports = class {
         this.remote.synchronize(
             this.options.localPath,
             this.release.path,
-            this.options.deployPath + '/' + this.options.synchronizedFolder,
+            this.options.deployPath + this.options.separator + this.options.synchronizedFolder,
             () => {
                 spinner.stop();
                 this.logger.ok('Done');
@@ -318,12 +323,15 @@ module.exports = class {
         this.logger.subhead('Decompress archive on remote');
         let spinner = this.logger.startSpinner('Decompressing');
 
-        const archivePath = path.posix.join(this.release.path, this.options.archiveName);
+        const archivePath = this.release.path + this.options.separator + this.options.archiveName;
+        
         const untarMap    = {
-            'zip': "unzip -q " + archivePath + " -d " + this.release.path + "/",
-            'tar': "tar -xvf " + archivePath + " -C " + this.release.path + "/ --warning=no-timestamp",
+            'zip': "unzip -q " + archivePath + " -d " + this.release.path + this.options.separator,
+            'tar': "tar -xvf " + archivePath + " -C " + this.release.path +  this.options.separator,
         };
-
+        if(!this.options.windows) {
+            untarMap.tar = untarMap.tar + " --warning=no-timestamp";
+        }
         // Check archiveType is supported
         if (!untarMap[this.options.archiveType]) {
             logger.fatal(this.options.archiveType + ' not supported.');
@@ -394,9 +402,9 @@ module.exports = class {
                     mode = configValue.mode;
                 }
 
-                const linkPath   = this.release.path + '/' + symlinkName;
+                const linkPath   = this.release.path + this.options.separator + symlinkName;
                 const upwardPath = utils.getReversePath(symlinkName);
-                const target     = upwardPath + '/../' + this.options.sharedFolder + '/' + currentSharedFolder;
+                const target     = upwardPath + this.options.separator + '..' + this.options.separator + this.options.sharedFolder + this.options.separator + currentSharedFolder;
 
                 this.logger.log(' - ' + symlinkName + ' ==> ' + currentSharedFolder);
                 this.remote.createSymboliclink(target, linkPath, () => {
@@ -434,7 +442,7 @@ module.exports = class {
         async.eachSeries(
             this.options.create,
             (currentFolderToCreate, itemDone) => {
-                const path = this.release.path + '/' + currentFolderToCreate;
+                const path = this.release.path + this.options.separator + currentFolderToCreate;
                 this.logger.log(' - ' + currentFolderToCreate);
 
                 this.remote.createFolder(path, itemDone);
@@ -461,7 +469,7 @@ module.exports = class {
         async.eachSeries(
             this.options.makeWritable,
             (currentFolderToMakeWritable, itemDone) => {
-                const path = this.release.path + '/' + currentFolderToMakeWritable;
+                const path = this.release.path + this.options.separator + currentFolderToMakeWritable;
                 const mode = 'ugo+w';
 
                 this.logger.log(' - ' + currentFolderToMakeWritable);
@@ -489,7 +497,7 @@ module.exports = class {
         async.eachSeries(
             this.options.makeExecutable,
             (currentFileToMakeExecutable, itemDone) => {
-                const path    = this.release.path + '/' + currentFileToMakeExecutable;
+                const path    = this.release.path + this.options.separator + currentFileToMakeExecutable;
                 const command = 'chmod ugo+x ' + path;
 
                 this.logger.log(' - ' + currentFileToMakeExecutable);
