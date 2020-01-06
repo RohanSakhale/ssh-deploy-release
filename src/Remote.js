@@ -260,15 +260,28 @@ module.exports = class {
     createSymboliclink(target, link, done) {
         link                = utils.realpath(link, this.options.separator);
         const symlinkTarget = utils.realpath(link + this.options.separator +  '..' + this.options.separator + target, this.options.separator);
-        var mkdir = 'mkdir -p';
-        if(this.options.windows) {
-            mkdir = 'mkdir';
-        }
+        console.log("command");
+        
         var commands = [
-            `${mkdir} \`dirname ${link}\``, // Create the parent of the symlink
-            `if test ! -e ${symlinkTarget}; then ${mkdir} ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
+            'mkdir -p \`dirname ${link}\`', // Create the parent of the symlink
+            `if test ! -e ${symlinkTarget}; then mkdir -p ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
             `ln -nfs ${target} ${link}`
         ];
+        
+        if(this.options.windows) {            
+            var commands = [
+                'mkdir "' + link + '"', // Create the parent of the symlink
+                `if not exists ${symlinkTarget} mkdir ${symlinkTarget}`, // Create the symlink target, if it doesn't exist
+                `rmdir ${target}`,
+                `mklink /d ${target} ${link}`
+            ];
+        }
+        console.log("Symlink: " + symlinkTarget);
+        // var commands = [
+        //     `${mkdir}`, // Create the parent of the symlink
+        //     `if test ! -e ${symlinkTarget}; then ${mkdir} ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
+        //     `ln -nfs ${target} ${link}`
+        // ];
 
         // if(this.options.windows) {
         //     commands = [
