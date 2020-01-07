@@ -1,15 +1,14 @@
-const Connection  = require('ssh2');
-const fs          = require('fs');
-const exec        = require('child_process').exec;
-const async       = require('async');
-const extend      = require('extend');
-const path        = require('path');
-const shellEscape = require('any-shell-escape');
-const utils       = require('./utils');
-const cliProgress = require('cli-progress');
-const chalk       = require('chalk');
-const humanFormat = require('human-format');
-
+const Connection = require("ssh2");
+const fs = require("fs");
+const exec = require("child_process").exec;
+const async = require("async");
+const extend = require("extend");
+const path = require("path");
+const shellEscape = require("any-shell-escape");
+const utils = require("./utils");
+const cliProgress = require("cli-progress");
+const chalk = require("chalk");
+const humanFormat = require("human-format");
 
 /**
  * Remote
@@ -18,17 +17,16 @@ const humanFormat = require('human-format');
 module.exports = class {
     constructor(options, logger, onError) {
         this.options = options;
-        this.logger  = logger;
+        this.logger = logger;
         this.onError = onError;
-        this.mkdir = 'mkdir -p ';
-        if(this.options.windows) {
-            this.mkdir = 'mkdir ';
+        this.mkdir = "mkdir -p ";
+        if (this.options.windows) {
+            this.mkdir = "mkdir ";
         }
         if (options.privateKeyFile) {
             options.privateKey = fs.readFileSync(options.privateKeyFile);
         }
     }
-
 
     /**
      * Initiate SSH and SCP connection
@@ -37,19 +35,17 @@ module.exports = class {
      * @param onClose
      */
     connect(onReady, onError, onClose) {
-
         // Instanciate connection
         this.connection = new Connection();
 
         // Register events
-        this.connection.on('ready', onReady);
-        this.connection.on('error', onError);
-        this.connection.on('close', onClose);
+        this.connection.on("ready", onReady);
+        this.connection.on("error", onError);
+        this.connection.on("close", onClose);
 
         // Connect
         this.connection.connect(this.options);
     }
-
 
     /**
      * Exec command on remote using SSH connection
@@ -66,12 +62,12 @@ module.exports = class {
                 this.onError(command, error);
             }
 
-            stream.stderr.on('data', data => {
+            stream.stderr.on("data", data => {
                 stderr.push(data.toString());
                 this.logger.error(`STDERR: ${data}`);
             });
 
-            stream.on('data', data => {
+            stream.on("data", data => {
                 stdout.push(data.toString());
                 if (log) {
                     this.logger.log(`STDOUT: ${data}`);
@@ -81,11 +77,12 @@ module.exports = class {
                 this.logger.debug(`STDOUT: ${data}`);
             });
 
-            stream.on('close', (exitCode, exitSignal) => {
-
+            stream.on("close", (exitCode, exitSignal) => {
                 // Error
                 if (exitCode !== 0) {
-                    this.logger.fatal('This command returns an error : "' + command + '"');
+                    this.logger.fatal(
+                        'This command returns an error : "' + command + '"'
+                    );
                 }
 
                 this.logger.debug(`Remote command : ${command}`);
@@ -94,7 +91,6 @@ module.exports = class {
         });
     }
 
-
     /**
      * Exec multiple commands on remote using SSH connection
      * @param commands
@@ -102,16 +98,20 @@ module.exports = class {
      * @param log Log result
      */
     execMultiple(commands, done, log) {
-
-        async.eachSeries(commands, (command, itemCallback) => {
-
-            this.exec(command, (error, exitCode, exitSignal, stdout, stderr) => {
-                itemCallback();
-            }, log);
-
-        }, done);
+        async.eachSeries(
+            commands,
+            (command, itemCallback) => {
+                this.exec(
+                    command,
+                    (error, exitCode, exitSignal, stdout, stderr) => {
+                        itemCallback();
+                    },
+                    log
+                );
+            },
+            done
+        );
     }
-
 
     /**
      * Upload file on remote
@@ -125,32 +125,47 @@ module.exports = class {
                 return done(err);
             }
 
-            const progressBar = new cliProgress.SingleBar({
-                format:     `|${chalk.cyan('{bar}')}| {bytesTransferred}/{bytesTotal} || {percentage}% || Elapsed: {duration_formatted}`,
-                hideCursor: true
-            }, cliProgress.Presets.shades_classic);
+            const progressBar = new cliProgress.SingleBar(
+                {
+                    format: `|${chalk.cyan(
+                        "{bar}"
+                    )}| {bytesTransferred}/{bytesTotal} || {percentage}% || Elapsed: {duration_formatted}`,
+                    hideCursor: true
+                },
+                cliProgress.Presets.shades_classic
+            );
 
             progressBar.start(100, 0, {
-                bytesTotal:       null,
-                bytesTransferred: 0,
+                bytesTotal: null,
+                bytesTransferred: 0
             });
 
-            sftp.fastPut(src,
+            sftp.fastPut(
+                src,
                 `${target}/${src}`,
                 {
                     chunkSize: 500,
-                    step:      (bytesTransferred, chunkSize, bytesTotal) => {
-
-                        progressBar.update(bytesTransferred / bytesTotal * 100, {
-                            bytesTransferred: humanFormat(bytesTransferred, { scale: 'binary', unit: 'B' }),
-                            bytesTotal:       humanFormat(bytesTotal, { scale: 'binary', unit: 'B' }),
-                        });
+                    step: (bytesTransferred, chunkSize, bytesTotal) => {
+                        progressBar.update(
+                            (bytesTransferred / bytesTotal) * 100,
+                            {
+                                bytesTransferred: humanFormat(
+                                    bytesTransferred,
+                                    { scale: "binary", unit: "B" }
+                                ),
+                                bytesTotal: humanFormat(bytesTotal, {
+                                    scale: "binary",
+                                    unit: "B"
+                                })
+                            }
+                        );
                     }
                 },
-                (err) => {
+                err => {
                     progressBar.stop();
                     done(err);
-                });
+                }
+            );
         });
     }
 
@@ -161,59 +176,70 @@ module.exports = class {
      * @param done
      */
     synchronize(src, target, synchronizedFolder, done) {
-        const source     = src + this.options.separator;
-        const fullTarget = this.options.username + '@' + this.options.host + ':' + synchronizedFolder;
+        const source = src + this.options.separator;
+        const fullTarget =
+            this.options.username +
+            "@" +
+            this.options.host +
+            ":" +
+            synchronizedFolder;
         const escapedUsername = shellEscape(this.options.username);
 
         // Construct rsync command
-        let remoteShell = '';
+        let remoteShell = "";
 
         // Use password
-        if (this.options.password != '') {
+        if (this.options.password != "") {
             const escapedPassword = shellEscape(this.options.password);
             remoteShell = `--rsh='sshpass -p "${escapedPassword}" ssh -l ${escapedUsername} -p ${this.options.port} -o StrictHostKeyChecking=no'`;
         }
 
         // Use privateKey
         else if (this.options.privateKeyFile != null) {
-            const escapedPrivateKeyFile = shellEscape(this.options.privateKeyFile);
+            const escapedPrivateKeyFile = shellEscape(
+                this.options.privateKeyFile
+            );
 
-            let passphrase = '';
+            let passphrase = "";
             if (this.options.passphrase) {
-                passphrase = `sshpass -p'${(shellEscape(this.options.passphrase))}' -P"assphrase for key"`;
+                passphrase = `sshpass -p'${shellEscape(
+                    this.options.passphrase
+                )}' -P"assphrase for key"`;
             }
 
             remoteShell = `--rsh='${passphrase} ssh -l ${escapedUsername} -i ${escapedPrivateKeyFile} -p ${this.options.port} -o StrictHostKeyChecking=no'`;
         }
 
         // Excludes
-        const excludes = this.options.exclude.map(path => `--exclude=${shellEscape(path)}`);
+        const excludes = this.options.exclude.map(
+            path => `--exclude=${shellEscape(path)}`
+        );
 
         // Compression
-        let compression = this.options.compression !== false ? '--compress': '';
-        if (typeof this.options.compression === 'number') {
+        let compression =
+            this.options.compression !== false ? "--compress" : "";
+        if (typeof this.options.compression === "number") {
             compression += ` --compress-level=${this.options.compression}`;
         }
 
         // Concat
         const synchronizeCommand = [
-            'rsync',
+            "rsync",
             remoteShell,
             this.options.rsyncOptions,
             compression,
             ...excludes,
-            '--delete-excluded',
-            '-a',
-            '--stats',
-            '--delete',
+            "--delete-excluded",
+            "-a",
+            "--stats",
+            "--delete",
             source,
             fullTarget
-        ].join(' ');
+        ].join(" ");
 
         // Exec !
         this.logger.debug(`Local command : ${synchronizeCommand}`);
         exec(synchronizeCommand, (error, stdout, stderr) => {
-
             if (error) {
                 this.logger.fatal(error);
                 return;
@@ -228,13 +254,14 @@ module.exports = class {
             }
 
             this.synchronizeRemote(
-                this.options.deployPath + this.options.separator + this.options.synchronizedFolder,
+                this.options.deployPath +
+                    this.options.separator +
+                    this.options.synchronizedFolder,
                 target,
                 done
             );
         });
     }
-
 
     /**
      * Synchronize two remote folders
@@ -243,13 +270,12 @@ module.exports = class {
      * @param done
      */
     synchronizeRemote(src, target, done) {
-        const copy = 'rsync -a ' + src + this.options.separator  + ' ' + target;
+        const copy = "rsync -a " + src + this.options.separator + " " + target;
 
         this.exec(copy, () => {
             done();
         });
     }
-
 
     /**
      * Create symbolic link on remote
@@ -258,24 +284,30 @@ module.exports = class {
      * @param done
      */
     createSymboliclink(target, link, done) {
-        link                = utils.realpath(link, this.options.separator);
-        const symlinkTarget = utils.realpath(link + this.options.separator +  '..' + this.options.separator + target, this.options.separator);
-        console.log("command");
-        
+        link = utils.realpath(link, this.options.separator);
+        const symlinkTarget =
+            link +
+            this.options.separator +
+            ".." +
+            this.options.separator +
+            target;
+        console.log("Link: " + link);
+        console.log("SymLink Target: " + symlinkTarget);
+
         var commands = [
-            'mkdir -p \`dirname ${link}\`', // Create the parent of the symlink
+            "mkdir -p `dirname ${link}`", // Create the parent of the symlink
             `if test ! -e ${symlinkTarget}; then mkdir -p ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
             `ln -nfs ${target} ${link}`
         ];
-        
-        if(this.options.windows) {            
-            var commands = [
-                'mkdir "' + link + '"', // Create the parent of the symlink
-                `if not exists ${symlinkTarget} mkdir ${symlinkTarget}`, // Create the symlink target, if it doesn't exist
+
+        if (this.options.windows) {
+            commands = [
+                'mkdir "' + link + this.options.separator + target + '"', // Create the parent of the symlink
                 `rmdir ${target}`,
                 `mklink /d ${target} ${link}`
             ];
         }
+        console.log("Windows: " + this.options.windows);
         console.log("Symlink: " + symlinkTarget);
         // var commands = [
         //     `${mkdir}`, // Create the parent of the symlink
@@ -300,9 +332,9 @@ module.exports = class {
      * @param done
      */
     chmod(path, mode, done) {
-        const command = 'chmod ' + mode + ' ' + path;
+        const command = "chmod " + mode + " " + path;
 
-        this.exec(command, function () {
+        this.exec(command, function() {
             done();
         });
     }
@@ -313,14 +345,9 @@ module.exports = class {
      * @param done
      */
     createFolder(path, done) {
-        
-        const commands = [
-            this.mkdir + path,
-            'chmod ugo+w ' + path
-        ];
+        const commands = [this.mkdir + path, "chmod ugo+w " + path];
         this.execMultiple(commands, done);
     }
-
 
     /**
      * Remove old folders on remote
@@ -330,10 +357,25 @@ module.exports = class {
      */
     removeOldFolders(folder, numberToKeep, done) {
         const commands = [
-            "cd " + folder + " && rm -rf `ls -r " + folder + " | awk 'NR>" + numberToKeep + "'`"
+            "cd " +
+                folder +
+                " && rm -rf `ls -r " +
+                folder +
+                " | awk 'NR>" +
+                numberToKeep +
+                "'`"
         ];
 
-        this.logger.log('Running: ' + "cd " + folder + " && rm -rf `ls -r " + folder + " | awk 'NR>" + numberToKeep + "'`");
+        this.logger.log(
+            "Running: " +
+                "cd " +
+                folder +
+                " && rm -rf `ls -r " +
+                folder +
+                " | awk 'NR>" +
+                numberToKeep +
+                "'`"
+        );
         this.execMultiple(commands, () => {
             done();
         });
@@ -346,23 +388,29 @@ module.exports = class {
 
     getPenultimateRelease(done) {
         return new Promise((resolve, reject) => {
-            const releasesPath                       = path.posix.join(this.options.deployPath, this.options.releasesFolder);
+            const releasesPath = path.posix.join(
+                this.options.deployPath,
+                this.options.releasesFolder
+            );
             const getPreviousReleaseDirectoryCommand = `ls -r  -d ${releasesPath}/*/ | grep -v rollbacked | awk 'NR==2'`;
 
-            this.exec(getPreviousReleaseDirectoryCommand, (err, exitCode, exitSignal, stdout, stderr) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
+            this.exec(
+                getPreviousReleaseDirectoryCommand,
+                (err, exitCode, exitSignal, stdout, stderr) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
 
-                const penultimateRelease = stdout[0];
-                if (!penultimateRelease) {
-                    reject('No previous release to rollback to');
-                    return;
-                }
+                    const penultimateRelease = stdout[0];
+                    if (!penultimateRelease) {
+                        reject("No previous release to rollback to");
+                        return;
+                    }
 
-                resolve(penultimateRelease);
-            });
+                    resolve(penultimateRelease);
+                }
+            );
         });
     }
 };

@@ -1,34 +1,30 @@
-const async = require('async');
-const path  = require('path');
-const fs    = require('fs');
-const _     = require('lodash');
+const async = require("async");
+const path = require("path");
+const fs = require("fs");
+const _ = require("lodash");
 
+const Options = require("./Options");
+const Release = require("./Release");
+const Remote = require("./Remote");
+const Archiver = require("./Archiver");
 
-const Options  = require('./Options');
-const Release  = require('./Release');
-const Remote   = require('./Remote');
-const Archiver = require('./Archiver');
-
-const logger = require('./logger');
-const utils  = require('./utils');
-
+const logger = require("./logger");
+const utils = require("./utils");
 
 module.exports = class {
     constructor(options) {
         this.options = new Options(options).get();
         this.logger = logger;
 
-        this.release = new Release(
-            this.options,
-            Options.defaultOptions()
-        );
-        if(this.options.windows) {
-            this.options.separator = '\\';
-            this.release.path = this.release.path.split('/').join(this.options.separator);
+        this.release = new Release(this.options, Options.defaultOptions());
+        if (this.options.windows) {
+            this.options.separator = "\\";
+            this.release.path = this.release.path
+                .split("/")
+                .join(this.options.separator);
         }
         this.remote = new Remote(this.options);
 
-        
         this.logger.setDebug(this.options.debug);
 
         this.context = {
@@ -53,7 +49,7 @@ module.exports = class {
                 },
                 createFolder: (path, done) => {
                     this.remote.createFolder(path, done);
-                },
+                }
             },
 
             // 1.x.x compatibility
@@ -64,15 +60,13 @@ module.exports = class {
             // @deprecated
             execRemote: (cmd, showLog, done) => {
                 this.remote.exec(cmd, done, showLog);
-            },
+            }
         };
     }
-
 
     noop() {
         // Nothing
     }
-
 
     /**
      * Deploy release
@@ -80,34 +74,36 @@ module.exports = class {
     deployRelease(done) {
         done = done || this.noop;
 
-        async.series([
-            this.connectToRemoteTask.bind(this),
-            this.onBeforeDeployTask.bind(this),
-            this.onBeforeDeployExecuteTask.bind(this),
-            this.compressReleaseTask.bind(this),
-            this.createReleaseFolderOnRemoteTask.bind(this),
-            this.uploadArchiveTask.bind(this),
-            this.uploadReleaseTask.bind(this),
-            this.decompressArchiveOnRemoteTask.bind(this),
-            this.updateSharedSymbolicLinkOnRemoteTask.bind(this),
-            this.createFolderTask.bind(this),
-            this.makeDirectoriesWritableTask.bind(this),
-            this.makeFilesExecutableTask.bind(this),
-            this.onBeforeLinkTask.bind(this),
-            this.onBeforeLinkExecuteTask.bind(this),
-            this.updateCurrentSymbolicLinkOnRemoteTask.bind(this),
-            this.onAfterDeployTask.bind(this),
-            this.onAfterDeployExecuteTask.bind(this),
-            this.remoteCleanupTask.bind(this),
-            this.deleteLocalArchiveTask.bind(this),
-            this.closeConnectionTask.bind(this),
-        ], function (err, result) {
-            // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
-            // TODO: Handle the case where err isn't null
-            done();
-        });
+        async.series(
+            [
+                this.connectToRemoteTask.bind(this),
+                this.onBeforeDeployTask.bind(this),
+                this.onBeforeDeployExecuteTask.bind(this),
+                this.compressReleaseTask.bind(this),
+                this.createReleaseFolderOnRemoteTask.bind(this),
+                this.uploadArchiveTask.bind(this),
+                this.uploadReleaseTask.bind(this),
+                this.decompressArchiveOnRemoteTask.bind(this),
+                this.updateSharedSymbolicLinkOnRemoteTask.bind(this),
+                this.createFolderTask.bind(this),
+                this.makeDirectoriesWritableTask.bind(this),
+                this.makeFilesExecutableTask.bind(this),
+                this.onBeforeLinkTask.bind(this),
+                this.onBeforeLinkExecuteTask.bind(this),
+                this.updateCurrentSymbolicLinkOnRemoteTask.bind(this),
+                this.onAfterDeployTask.bind(this),
+                this.onAfterDeployExecuteTask.bind(this),
+                this.remoteCleanupTask.bind(this),
+                this.deleteLocalArchiveTask.bind(this),
+                this.closeConnectionTask.bind(this)
+            ],
+            function(err, result) {
+                // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
+                // TODO: Handle the case where err isn't null
+                done();
+            }
+        );
     }
-
 
     /**
      * Rollback to previous release
@@ -116,24 +112,25 @@ module.exports = class {
     rollbackToPreviousRelease(done) {
         done = done || this.noop;
 
-        async.series([
-            this.connectToRemoteTask.bind(this),
-            this.onBeforeRollbackTask.bind(this),
-            this.onBeforeRollbackExecuteTask.bind(this),
-            this.populatePenultimateReleaseNameTask.bind(this),
-            this.renamePenultimateReleaseTask.bind(this),
-            this.updateCurrentSymbolicLinkOnRemoteTask.bind(this),
-            this.onAfterRollbackTask.bind(this),
-            this.onAfterRollbackExecuteTask.bind(this),
-            this.closeConnectionTask.bind(this),
-        ], (err, result) => {
-            // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
-            // TODO: Handle the case where err isn't null
-            done();
-        });
-
+        async.series(
+            [
+                this.connectToRemoteTask.bind(this),
+                this.onBeforeRollbackTask.bind(this),
+                this.onBeforeRollbackExecuteTask.bind(this),
+                this.populatePenultimateReleaseNameTask.bind(this),
+                this.renamePenultimateReleaseTask.bind(this),
+                this.updateCurrentSymbolicLinkOnRemoteTask.bind(this),
+                this.onAfterRollbackTask.bind(this),
+                this.onAfterRollbackExecuteTask.bind(this),
+                this.closeConnectionTask.bind(this)
+            ],
+            (err, result) => {
+                // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
+                // TODO: Handle the case where err isn't null
+                done();
+            }
+        );
     }
-
 
     /**
      * Remove release
@@ -141,17 +138,19 @@ module.exports = class {
     removeRelease(done) {
         done = done || this.noop;
 
-        async.series([
-            this.connectToRemoteTask.bind(this),
-            this.removeReleaseTask.bind(this),
-            this.closeConnectionTask.bind(this),
-        ], function (err, result) {
-            // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
-            // TODO: Handle the case where err isn't null
-            done();
-        });
+        async.series(
+            [
+                this.connectToRemoteTask.bind(this),
+                this.removeReleaseTask.bind(this),
+                this.closeConnectionTask.bind(this)
+            ],
+            function(err, result) {
+                // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
+                // TODO: Handle the case where err isn't null
+                done();
+            }
+        );
     }
-
 
     // =======================================================================================
 
@@ -159,14 +158,14 @@ module.exports = class {
      * @param done
      */
     onBeforeDeployTask(done) {
-        this.middlewareCallbackExecute('onBeforeDeploy', done);
+        this.middlewareCallbackExecute("onBeforeDeploy", done);
     }
 
     /**
      * @param done
      */
     onBeforeDeployExecuteTask(done) {
-        this.middlewareCallbackExecuteLegacy('onBeforeDeploy', done);
+        this.middlewareCallbackExecuteLegacy("onBeforeDeploy", done);
     }
 
     /**
@@ -174,14 +173,13 @@ module.exports = class {
      * @param done
      */
     compressReleaseTask(done) {
-
-        if (this.options.mode != 'archive') {
+        if (this.options.mode != "archive") {
             done();
             return;
         }
 
-        logger.subhead('Compress release');
-        let spinner = logger.startSpinner('Compressing');
+        logger.subhead("Compress release");
+        let spinner = logger.startSpinner("Compressing");
 
         let archiver = this.createArchiver(
             this.options.archiveType,
@@ -191,17 +189,17 @@ module.exports = class {
         );
 
         archiver.compress(
-            (fileSize) => {
+            fileSize => {
                 spinner.stop();
-                logger.ok('Archive created : ' + fileSize);
+                logger.ok("Archive created : " + fileSize);
                 done();
             },
-            (err) => {
+            err => {
                 spinner.stop();
-                logger.error('Error while compressing');
+                logger.error("Error while compressing");
                 throw err;
             }
-        )
+        );
     }
 
     /**
@@ -209,14 +207,14 @@ module.exports = class {
      * @param done
      */
     connectToRemoteTask(done) {
-        this.logger.subhead('Connect to ' + this.options.host);
-        const spinner = this.logger.startSpinner('Connecting');
+        this.logger.subhead("Connect to " + this.options.host);
+        const spinner = this.logger.startSpinner("Connecting");
 
         this.remote = this.createRemote(
             this.options,
             this.logger,
             (command, error) => {
-                this.logger.error('Connection error', command, error);
+                this.logger.error("Connection error", command, error);
 
                 // Clean up remote release + close connection
                 //    this.removeReleaseTask(this.closeConnectionTask(done));
@@ -227,11 +225,11 @@ module.exports = class {
             // Success
             () => {
                 spinner.stop();
-                this.logger.ok('Connected');
+                this.logger.ok("Connected");
                 done();
             },
             // Error
-            (error) => {
+            error => {
                 spinner.stop();
                 if (error) {
                     this.logger.fatal(error);
@@ -249,11 +247,11 @@ module.exports = class {
      * @param done
      */
     createReleaseFolderOnRemoteTask(done) {
-        this.logger.subhead('Create release folder on remote');
-        this.logger.log(' - ' + this.release.path);
+        this.logger.subhead("Create release folder on remote");
+        this.logger.log(" - " + this.release.path);
 
         this.remote.createFolder(this.release.path, () => {
-            this.logger.ok('Done');
+            this.logger.ok("Done");
             done();
         });
     }
@@ -263,22 +261,22 @@ module.exports = class {
      * @param done
      */
     uploadArchiveTask(done) {
-        if (this.options.mode != 'archive') {
+        if (this.options.mode != "archive") {
             done();
             return;
         }
 
-        this.logger.subhead('Upload archive to remote');
+        this.logger.subhead("Upload archive to remote");
 
         this.remote.upload(
             this.options.archiveName,
             this.release.path,
-            (error) => {
+            error => {
                 if (error) {
                     logger.fatal(error);
                 }
 
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -289,22 +287,23 @@ module.exports = class {
      * @param done
      */
     uploadReleaseTask(done) {
-
-        if (this.options.mode != 'synchronize') {
+        if (this.options.mode != "synchronize") {
             done();
             return;
         }
 
-        this.logger.subhead('Synchronize remote server');
-        const spinner = this.logger.startSpinner('Synchronizing');
+        this.logger.subhead("Synchronize remote server");
+        const spinner = this.logger.startSpinner("Synchronizing");
 
         this.remote.synchronize(
             this.options.localPath,
             this.release.path,
-            this.options.deployPath + this.options.separator + this.options.synchronizedFolder,
+            this.options.deployPath +
+                this.options.separator +
+                this.options.synchronizedFolder,
             () => {
                 spinner.stop();
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -315,41 +314,58 @@ module.exports = class {
      * @param done
      */
     decompressArchiveOnRemoteTask(done) {
-        if (this.options.mode != 'archive') {
+        if (this.options.mode != "archive") {
             done();
             return;
         }
 
-        this.logger.subhead('Decompress archive on remote');
-        let spinner = this.logger.startSpinner('Decompressing');
+        this.logger.subhead("Decompress archive on remote");
+        let spinner = this.logger.startSpinner("Decompressing");
 
-        const archivePath = this.release.path + this.options.separator + this.options.archiveName;
-        
-        const untarMap    = {
-            'zip': "unzip -q " + archivePath + " -d " + this.release.path + this.options.separator,
-            'tar': "tar -xvf " + archivePath + " -C " + this.release.path +  this.options.separator,
+        const archivePath =
+            this.release.path +
+            this.options.separator +
+            this.options.archiveName;
+
+        const untarMap = {
+            zip:
+                "unzip -q " +
+                archivePath +
+                " -d " +
+                this.release.path +
+                this.options.separator,
+            tar:
+                "tar -xvf " +
+                archivePath +
+                " -C " +
+                this.release.path +
+                this.options.separator
         };
-        if(!this.options.windows) {
+        if (!this.options.windows) {
             untarMap.tar = untarMap.tar + " --warning=no-timestamp";
         }
         // Check archiveType is supported
         if (!untarMap[this.options.archiveType]) {
-            logger.fatal(this.options.archiveType + ' not supported.');
+            logger.fatal(this.options.archiveType + " not supported.");
         }
 
         const commands = [
             untarMap[this.options.archiveType],
-            "rm " + archivePath,
+            "rm " + archivePath
         ];
-        async.eachSeries(commands, (command, itemDone) => {
-            this.remote.exec(command, () => {
-                itemDone();
-            });
-        }, () => {
-            spinner.stop();
-            this.logger.ok('Done');
-            done();
-        });
+        async.eachSeries(
+            commands,
+            (command, itemDone) => {
+                this.remote.exec(command, () => {
+                    itemDone();
+                });
+            },
+            () => {
+                spinner.stop();
+                this.logger.ok("Done");
+                done();
+            }
+        );
     }
 
     /**
@@ -357,7 +373,7 @@ module.exports = class {
      * @param done
      */
     onBeforeLinkTask(done) {
-        this.middlewareCallbackExecute('onBeforeLink', done);
+        this.middlewareCallbackExecute("onBeforeLink", done);
     }
 
     /**
@@ -365,7 +381,7 @@ module.exports = class {
      * @param done
      */
     onBeforeLinkExecuteTask(done) {
-        this.middlewareCallbackExecuteLegacy('onBeforeLink', done);
+        this.middlewareCallbackExecuteLegacy("onBeforeLink", done);
     }
 
     /**
@@ -373,54 +389,65 @@ module.exports = class {
      * @param done
      */
     updateSharedSymbolicLinkOnRemoteTask(done) {
-
         if (!this.options.share || this.options.share.length == 0) {
             done();
             return;
         }
 
-        this.logger.subhead('Update shared symlink on remote');
+        this.logger.subhead("Update shared symlink on remote");
 
         async.eachSeries(
             Object.keys(this.options.share),
             (currentSharedFolder, itemDone) => {
                 const configValue = this.options.share[currentSharedFolder];
-                let symlinkName   = configValue;
-                let mode          = null;
+                let symlinkName = configValue;
+                let mode = null;
 
                 if (
-                    typeof configValue == 'object'
-                    && 'symlink' in configValue
+                    typeof configValue == "object" &&
+                    "symlink" in configValue
                 ) {
                     symlinkName = configValue.symlink;
                 }
 
-                if (
-                    typeof configValue == 'object'
-                    && 'mode' in configValue
-                ) {
+                if (typeof configValue == "object" && "mode" in configValue) {
                     mode = configValue.mode;
                 }
 
-                const linkPath   = this.release.path + this.options.separator + symlinkName;
-                const upwardPath = utils.getReversePath(symlinkName);
-                const target     = upwardPath + this.options.separator + '..' + this.options.separator + this.options.sharedFolder + this.options.separator + currentSharedFolder;
+                if (this.options.windows) {
+                    this.options.separator = "\\";
+                }
 
-                this.logger.log(' - ' + symlinkName + ' ==> ' + currentSharedFolder);
+                const linkPath =
+                    this.release.path + this.options.separator + symlinkName;
+                const upwardPath = utils.getReversePath(symlinkName);
+                const target =
+                    upwardPath +
+                    this.options.separator +
+                    ".." +
+                    this.options.separator +
+                    this.options.sharedFolder +
+                    this.options.separator +
+                    currentSharedFolder;
+
+                this.logger.log(
+                    " - " + symlinkName + " ==> " + currentSharedFolder
+                );
+                this.logger.log("Target Link: " + target);
                 this.remote.createSymboliclink(target, linkPath, () => {
                     if (!mode) {
                         itemDone();
                         return;
                     }
 
-                    this.logger.log('   chmod ' + mode);
+                    this.logger.log("   chmod " + mode);
                     this.remote.chmod(linkPath, mode, () => {
                         itemDone();
                     });
                 });
             },
             () => {
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -431,24 +458,26 @@ module.exports = class {
      * @param done
      */
     createFolderTask(done) {
-
         if (!this.options.create || this.options.create.length == 0) {
             done();
             return;
         }
 
-        this.logger.subhead('Create folders on remote');
+        this.logger.subhead("Create folders on remote");
 
         async.eachSeries(
             this.options.create,
             (currentFolderToCreate, itemDone) => {
-                const path = this.release.path + this.options.separator + currentFolderToCreate;
-                this.logger.log(' - ' + currentFolderToCreate);
+                const path =
+                    this.release.path +
+                    this.options.separator +
+                    currentFolderToCreate;
+                this.logger.log(" - " + currentFolderToCreate);
 
                 this.remote.createFolder(path, itemDone);
             },
             () => {
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -459,24 +488,30 @@ module.exports = class {
      * @param done
      */
     makeDirectoriesWritableTask(done) {
-        if (!this.options.makeWritable || this.options.makeWritable.length == 0) {
+        if (
+            !this.options.makeWritable ||
+            this.options.makeWritable.length == 0
+        ) {
             done();
             return;
         }
 
-        this.logger.subhead('Make folders writable on remote');
+        this.logger.subhead("Make folders writable on remote");
 
         async.eachSeries(
             this.options.makeWritable,
             (currentFolderToMakeWritable, itemDone) => {
-                const path = this.release.path + this.options.separator + currentFolderToMakeWritable;
-                const mode = 'ugo+w';
+                const path =
+                    this.release.path +
+                    this.options.separator +
+                    currentFolderToMakeWritable;
+                const mode = "ugo+w";
 
-                this.logger.log(' - ' + currentFolderToMakeWritable);
+                this.logger.log(" - " + currentFolderToMakeWritable);
                 this.remote.chmod(path, mode, itemDone);
             },
             () => {
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -487,42 +522,30 @@ module.exports = class {
      * @param done
      */
     makeFilesExecutableTask(done) {
-        if (!this.options.makeExecutable || this.options.makeExecutable.length == 0) {
+        if (
+            !this.options.makeExecutable ||
+            this.options.makeExecutable.length == 0
+        ) {
             done();
             return;
         }
 
-        this.logger.subhead('Make files executables on remote');
+        this.logger.subhead("Make files executables on remote");
 
         async.eachSeries(
             this.options.makeExecutable,
             (currentFileToMakeExecutable, itemDone) => {
-                const path    = this.release.path + this.options.separator + currentFileToMakeExecutable;
-                const command = 'chmod ugo+x ' + path;
+                const path =
+                    this.release.path +
+                    this.options.separator +
+                    currentFileToMakeExecutable;
+                const command = "chmod ugo+x " + path;
 
-                this.logger.log(' - ' + currentFileToMakeExecutable);
+                this.logger.log(" - " + currentFileToMakeExecutable);
                 this.remote.exec(command, itemDone);
-            }, () => {
-                this.logger.ok('Done');
-                done();
-            });
-    }
-
-    /**
-     *
-     * @param done
-     */
-    updateCurrentSymbolicLinkOnRemoteTask(done) {
-        this.logger.subhead('Update current release symlink on remote');
-
-        const target      = path.posix.join(this.options.releasesFolder, this.release.tag);
-        const currentPath = path.posix.join(this.options.deployPath, this.options.currentReleaseLink);
-
-        this.remote.createSymboliclink(
-            target,
-            currentPath,
+            },
             () => {
-                logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
         );
@@ -532,8 +555,30 @@ module.exports = class {
      *
      * @param done
      */
+    updateCurrentSymbolicLinkOnRemoteTask(done) {
+        this.logger.subhead("Update current release symlink on remote");
+
+        const target = path.posix.join(
+            this.options.releasesFolder,
+            this.release.tag
+        );
+        const currentPath = path.posix.join(
+            this.options.deployPath,
+            this.options.currentReleaseLink
+        );
+
+        this.remote.createSymboliclink(target, currentPath, () => {
+            logger.ok("Done");
+            done();
+        });
+    }
+
+    /**
+     *
+     * @param done
+     */
     onAfterDeployTask(done) {
-        this.middlewareCallbackExecute('onAfterDeploy', done);
+        this.middlewareCallbackExecute("onAfterDeploy", done);
     }
 
     /**
@@ -541,7 +586,7 @@ module.exports = class {
      * @param done
      */
     onAfterDeployExecuteTask(done) {
-        this.middlewareCallbackExecuteLegacy('onAfterDeploy', done);
+        this.middlewareCallbackExecuteLegacy("onAfterDeploy", done);
     }
 
     /**
@@ -549,9 +594,8 @@ module.exports = class {
      * @param done
      */
     remoteCleanupTask(done) {
-
-        this.logger.subhead('Remove old builds on remote');
-        let spinner = this.logger.startSpinner('Removing');
+        this.logger.subhead("Remove old builds on remote");
+        let spinner = this.logger.startSpinner("Removing");
 
         if (this.options.releasesToKeep < 1) {
             this.options.releasesToKeep = 1;
@@ -567,10 +611,10 @@ module.exports = class {
             this.options.releasesToKeep,
             () => {
                 spinner.stop();
-                this.logger.ok('Done');
+                this.logger.ok("Done");
                 done();
             }
-        )
+        );
     }
 
     /**
@@ -578,14 +622,17 @@ module.exports = class {
      * @param done
      */
     deleteLocalArchiveTask(done) {
-        if (this.options.mode != 'archive' || !this.options.deleteLocalArchiveAfterDeployment) {
+        if (
+            this.options.mode != "archive" ||
+            !this.options.deleteLocalArchiveAfterDeployment
+        ) {
             done();
             return;
         }
 
-        logger.subhead('Delete local archive');
+        logger.subhead("Delete local archive");
         fs.unlinkSync(this.options.archiveName);
-        logger.ok('Done');
+        logger.ok("Done");
         done();
     }
 
@@ -597,28 +644,28 @@ module.exports = class {
         this.remote.close(done);
     }
 
-
     /**
      * Remove release on remote
      * @param done
      */
     removeReleaseTask(done) {
-        this.logger.subhead('Remove releases on remote');
+        this.logger.subhead("Remove releases on remote");
 
         const command = "rm -rf " + this.options.deployPath;
         this.remote.exec(command, () => {
-            this.logger.ok('Done');
+            this.logger.ok("Done");
             done();
         });
     }
-
 
     // ================================================================
 
     middlewareCallbackExecuteLegacy(eventName, callback) {
         const legacyEventName = `${eventName}Execute`;
-        if (this.options[legacyEventName]){
-            this.logger.warning(`[DEPRECATED] ${legacyEventName} is deprecated and may be removed in a future release. Please use ${eventName} instead.`)
+        if (this.options[legacyEventName]) {
+            this.logger.warning(
+                `[DEPRECATED] ${legacyEventName} is deprecated and may be removed in a future release. Please use ${eventName} instead.`
+            );
         }
         this.middlewareCallbackExecute(legacyEventName, callback);
     }
@@ -635,40 +682,44 @@ module.exports = class {
             return;
         }
 
-
         // If commands is a function, it can be:
         //   * a custom callback that returns a promise
         //   * a legacy custom callback that calls `callback` and returns nothing
         //   * a function that returns commands to execute
-        if (typeof commands === 'function') {
+        if (typeof commands === "function") {
             let commandsFunctionReturnValue = commands(this.context, callback);
 
             // Promise
             if (commandsFunctionReturnValue instanceof Promise) {
-                commandsFunctionReturnValue.then(() => {
-                    callback();
-                }).catch(reason => {
-                    callback(`The user-supplied ${eventName} callback returned an error: ${reason}`);
-                });
+                commandsFunctionReturnValue
+                    .then(() => {
+                        callback();
+                    })
+                    .catch(reason => {
+                        callback(
+                            `The user-supplied ${eventName} callback returned an error: ${reason}`
+                        );
+                    });
 
                 return;
             }
 
             // Legacy custom callback
             if (commandsFunctionReturnValue === undefined) {
-                this.logger.warning(`[DEPRECATED] ${eventName} – Node-style callback are deprecated and will be removed in a future release. Please return a Promise and call its resolve() method when you used to call the done() callback.`)
+                this.logger.warning(
+                    `[DEPRECATED] ${eventName} – Node-style callback are deprecated and will be removed in a future release. Please return a Promise and call its resolve() method when you used to call the done() callback.`
+                );
                 // No need to call callback here, the user-supplied function must have called it
                 return;
             }
 
             // Support single command as a string
-            if (typeof commandsFunctionReturnValue === 'string') {
+            if (typeof commandsFunctionReturnValue === "string") {
                 commandsFunctionReturnValue = [commandsFunctionReturnValue];
             }
 
             commands = commandsFunctionReturnValue;
         }
-
 
         // Nothing to execute
         if (!commands || commands.length == 0) {
@@ -677,15 +728,18 @@ module.exports = class {
         }
 
         // Execute each command
-        async.eachSeries(commands, (command, innerCallback) => {
-            this.logger.subhead('Execute on remote : ' + command);
-            this.remote.exec(command, innerCallback, true);
-        }, () => {
-            this.logger.ok('Done');
-            callback();
-        });
+        async.eachSeries(
+            commands,
+            (command, innerCallback) => {
+                this.logger.subhead("Execute on remote : " + command);
+                this.remote.exec(command, innerCallback, true);
+            },
+            () => {
+                this.logger.ok("Done");
+                callback();
+            }
+        );
     }
-
 
     /**
      * Archiver factory
@@ -696,16 +750,8 @@ module.exports = class {
      * @returns {Archiver}
      */
     createArchiver(archiveType, archiveName, localPath, exclude) {
-        return new Archiver(
-            archiveType,
-            archiveName,
-            localPath,
-            exclude
-        );
+        return new Archiver(archiveType, archiveName, localPath, exclude);
     }
-    ;
-
-
     /**
      * Remote factory
      */
@@ -713,30 +759,37 @@ module.exports = class {
         return new Remote(options, logger, onError);
     }
 
-
     /**
      * @param {Function} done
      */
     onBeforeRollbackTask(done) {
-        this.middlewareCallbackExecute('onBeforeRollback', done);
+        this.middlewareCallbackExecute("onBeforeRollback", done);
     }
 
     /**
      * @param {Function} done
      */
     onBeforeRollbackExecuteTask(done) {
-        this.middlewareCallbackExecuteLegacy('onBeforeRollback', done);
+        this.middlewareCallbackExecuteLegacy("onBeforeRollback", done);
     }
 
     /**
      * @param {Function} done
      */
     populatePenultimateReleaseNameTask(done) {
-        this.logger.subhead('Get previous release path');
+        this.logger.subhead("Get previous release path");
 
-        this.remote.getPenultimateRelease()
+        this.remote
+            .getPenultimateRelease()
             .then(penultimateReleasePath => {
-                penultimateReleasePath = penultimateReleasePath.trim().replace(new RegExp(`^${this.options.deployPath}/?${this.options.releasesFolder}/?`), '');
+                penultimateReleasePath = penultimateReleasePath
+                    .trim()
+                    .replace(
+                        new RegExp(
+                            `^${this.options.deployPath}/?${this.options.releasesFolder}/?`
+                        ),
+                        ""
+                    );
                 this.logger.ok(penultimateReleasePath);
                 this.penultimateReleaseName = penultimateReleasePath;
                 done();
@@ -750,17 +803,20 @@ module.exports = class {
      * @param {Function} done
      */
     renamePenultimateReleaseTask(done) {
-        this.logger.subhead('Rename previous release');
+        this.logger.subhead("Rename previous release");
 
-        const releasesPath           = path.posix.join(this.options.deployPath, this.options.releasesFolder);
+        const releasesPath = path.posix.join(
+            this.options.deployPath,
+            this.options.releasesFolder
+        );
         const newPreviousReleaseName = `${this.release.tag}_rollback-to_${this.penultimateReleaseName}`;
 
         this.remote.exec(
             [
-                'mv',
+                "mv",
                 path.posix.join(releasesPath, this.penultimateReleaseName),
                 path.posix.join(releasesPath, newPreviousReleaseName)
-            ].join(' '),
+            ].join(" "),
             (err, exitCode, exitSignal, stdout, stderr) => {
                 if (err) {
                     done(err);
@@ -777,13 +833,13 @@ module.exports = class {
      * @param {Function} done
      */
     onAfterRollbackTask(done) {
-        this.middlewareCallbackExecute('onAfterRollback', done);
+        this.middlewareCallbackExecute("onAfterRollback", done);
     }
 
     /**
      * @param {Function} done
      */
     onAfterRollbackExecuteTask(done) {
-        this.middlewareCallbackExecuteLegacy('onAfterRollback', done);
+        this.middlewareCallbackExecuteLegacy("onAfterRollback", done);
     }
 };
