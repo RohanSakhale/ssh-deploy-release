@@ -291,8 +291,6 @@ module.exports = class {
             ".." +
             this.options.separator +
             target;
-        console.log("Link: " + link);
-        console.log("SymLink Target: " + symlinkTarget);
 
         var commands = [
             "mkdir -p `dirname ${link}`", // Create the parent of the symlink
@@ -302,26 +300,11 @@ module.exports = class {
 
         if (this.options.windows) {
             commands = [
-                'mkdir "' + link + this.options.separator + target + '"', // Create the parent of the symlink
-                `rmdir ${target}`,
-                `mklink /d ${target} ${link}`
+                `if exist "${link}" rmdir /S /Q "${link}"`,
+                `mklink /D "${link}" "${symlinkTarget}"`
             ];
         }
-        console.log("Windows: " + this.options.windows);
-        console.log("Symlink: " + symlinkTarget);
-        // var commands = [
-        //     `${mkdir}`, // Create the parent of the symlink
-        //     `if test ! -e ${symlinkTarget}; then ${mkdir} ${symlinkTarget}; fi`, // Create the symlink target, if it doesn't exist
-        //     `ln -nfs ${target} ${link}`
-        // ];
-
-        // if(this.options.windows) {
-        //     commands = [
-        //         `ln -nfs ${target} ${link}`
-        //     ];
-        //     this.logger.log('Running: ' + `ln -nfs ${target} ${link}`);
-        // }
-
+        this.logger.log(commands.join(";"));
         this.execMultiple(commands, done);
     }
 
@@ -382,6 +365,10 @@ module.exports = class {
     }
 
     close(done) {
+        if(this.options.windows) {
+            done();
+            return;
+        }
         this.connection.end();
         done();
     }

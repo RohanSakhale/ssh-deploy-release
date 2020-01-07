@@ -97,7 +97,7 @@ module.exports = class {
                 this.deleteLocalArchiveTask.bind(this),
                 this.closeConnectionTask.bind(this)
             ],
-            function(err, result) {
+            function (err, result) {
                 // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
                 // TODO: Handle the case where err isn't null
                 done();
@@ -144,7 +144,7 @@ module.exports = class {
                 this.removeReleaseTask.bind(this),
                 this.closeConnectionTask.bind(this)
             ],
-            function(err, result) {
+            function (err, result) {
                 // TODO: Consider calling this.closeConnectionTask() here to ensure it's closed even if an error occurs in the series
                 // TODO: Handle the case where err isn't null
                 done();
@@ -299,8 +299,8 @@ module.exports = class {
             this.options.localPath,
             this.release.path,
             this.options.deployPath +
-                this.options.separator +
-                this.options.synchronizedFolder,
+            this.options.separator +
+            this.options.synchronizedFolder,
             () => {
                 spinner.stop();
                 this.logger.ok("Done");
@@ -431,7 +431,7 @@ module.exports = class {
                     currentSharedFolder;
 
                 this.logger.log(
-                    " - " + symlinkName + " ==> " + currentSharedFolder
+                    "Before fn call - " + symlinkName + " ==> " + currentSharedFolder
                 );
                 this.logger.log("Target Link: " + target);
                 this.remote.createSymboliclink(target, linkPath, () => {
@@ -558,14 +558,13 @@ module.exports = class {
     updateCurrentSymbolicLinkOnRemoteTask(done) {
         this.logger.subhead("Update current release symlink on remote");
 
-        const target = path.posix.join(
-            this.options.releasesFolder,
-            this.release.tag
-        );
-        const currentPath = path.posix.join(
-            this.options.deployPath,
-            this.options.currentReleaseLink
-        );
+        const target = this.options.releasesFolder
+            + this.options.separator +
+            this.release.tag;
+
+        const currentPath = this.options.deployPath
+            + this.options.separator +
+            this.options.currentReleaseLink;
 
         this.remote.createSymboliclink(target, currentPath, () => {
             logger.ok("Done");
@@ -595,16 +594,20 @@ module.exports = class {
      */
     remoteCleanupTask(done) {
         this.logger.subhead("Remove old builds on remote");
+        if (this.options.windows) {
+            this.logger.log("Disabling removing old builds for Windows");
+            done();
+            return;
+        }
         let spinner = this.logger.startSpinner("Removing");
 
         if (this.options.releasesToKeep < 1) {
             this.options.releasesToKeep = 1;
         }
 
-        const folder = path.posix.join(
-            this.options.deployPath,
-            this.options.releasesFolder
-        );
+        const folder = this.options.deployPath
+            + this.options.separator +
+            this.options.releasesFolder;
 
         this.remote.removeOldFolders(
             folder,
